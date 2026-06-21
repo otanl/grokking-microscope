@@ -26,8 +26,8 @@ An ~11,856-parameter (≈11.9K) Llama-style decoder: hidden size 16, 2 layers, 4
 1 KV head (GQA), SiLU MLP width 24, RMSNorm, RoPE, tied embeddings, vocab 512, context 512,
 byte-level BPE, pretrained on 500K tokens of FineWeb-Edu (base only, no SFT). The scripts
 fetch it at runtime via `huggingface_hub.snapshot_download`; **the weights are not committed
-to this repository.** If you use the model, please cite its authors (see
-[Citing the model](#citing-the-model)).
+to this repository.** If you use the model, please credit its authors (see
+[Crediting the model](#crediting-the-model-third-party)).
 
 ---
 
@@ -117,7 +117,10 @@ exactly without retraining.
 - **The model** (Glimmer-1-Base) is the property of its authors (CompactAI / Glint Research)
   and is distributed by them under MIT on HuggingFace. It is **not** redistributed here.
 
-## Citing the model
+## Crediting the model (third-party)
+
+This model is **not** a contribution of this work; we neither created nor trained it. If your
+work uses **Glimmer-1-Base**, please cite its original authors (CompactAI / Glint Research):
 
 ```bibtex
 @misc{glimmer1base2026,
