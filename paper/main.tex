@@ -15,7 +15,7 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 
-\title{What Governs Grokking in a Fully-Tractable Transformer?\\ A Controlled Study at 12K Parameters}
+\title{Grokking Is Conditional and Fragile: A Fully-Tractable, Multi-Seed Study at 12K Parameters}
 
 % Authors must not appear in the submitted version. They should be hidden
 % as long as the tmlr package is used without the [accepted] or [preprint] options.
@@ -41,16 +41,16 @@ where a single training run is taken as evidence. We instead study an $\approx$1
 Llama-style transformer (Glimmer-1-Base) on modular arithmetic, a regime small enough to enumerate
 and read its weights, attention, and full input-output map directly, and we measure grokking as a
 multi-seed \emph{rate} rather than a single outcome. Six findings emerge. (i) The grokking
-transition is gated by training-set coverage, and the coverage threshold is governed primarily by
-the output cardinality (the modulus) and only secondarily by composition structure, an ordering
-that replicates across a ten-fold change in domain size. (ii) Weight decay reproduces the Omnigrok
+transition is gated by training-set coverage, and the coverage threshold tracks
+the output cardinality (the modulus) more than composition structure, an ordering that holds above
+the transition and across a ten-fold change in domain size. (ii) Weight decay reproduces the Omnigrok
 inverted-U at 12K parameters, grok-rate rising from 20\% to 90\% then collapsing to 0\%, a positive
 control on the rate measurement. (iii) Grokking sits on a
 numerical knife-edge: two distinct perturbations of the floating-point environment, the CPU thread
 count (a pure change of reduction order) and CPU-versus-GPU execution (a device change that subsumes
-it), each flip a minority of seeds ($\approx$5/30 at the 0.70 threshold; the device count is
-threshold-sensitive, 2--6/30) with no detectable change in the aggregate rate (paired-difference
-95\% confidence intervals within $\pm20$ points). (iv) The mechanistic read-out is mixed:
+it), each flip a minority of seeds (49/300 and 19/100 at the 0.70 threshold) without a detectable
+shift in the aggregate rate (well powered: exact McNemar $p\ge0.39$; paired-difference 95\%
+confidence intervals within $\pm10$ points). (iv) The mechanistic read-out is mixed:
 generalizing solutions have a more periodic output map (a partly definitional consistency check),
 while the genuinely independent result is a \emph{negative} one, namely that the dim-16 model does
 not form the textbook Fourier embedding circle. (v) Task decomposition helps not by enabling an
@@ -107,17 +107,15 @@ under a pinned numerical environment.
 
 Our contributions are:
 \begin{enumerate}
-\item \textbf{A coverage-cardinality regularity.} The grokking coverage threshold is governed
-primarily by the output cardinality (the modulus $M$) rather than by the composition structure of
-the task, an ordering that replicates across a ten-fold change in input-domain size
-(Section~\ref{sec:coverage}).
+\item \textbf{A coverage--cardinality pattern.} Above the transition, the grokking coverage
+threshold tracks the output cardinality (the modulus $M$) more than the composition structure of the
+task, an ordering that holds across a ten-fold change in input-domain size (Section~\ref{sec:coverage}).
 \item \textbf{An Omnigrok reproduction at 12K parameters.} Weight decay produces the inverted-U in
 grok-rate predicted by the loss-landscape account of grokking, validating the rate measurement as
 a positive control (Section~\ref{sec:wd}).
 \item \textbf{A replicated numerical knife-edge.} Two distinct perturbations of the floating-point
 environment, reduction order (CPU thread count) and execution device (which subsumes it), each flip
-a minority of same-seed outcomes ($\approx$5/30 at the 0.70 threshold; the device count is
-threshold-sensitive, 2--6/30) with no detectable aggregate bias, a fragility axis distinct from the
+a minority of same-seed outcomes (49/300 and 19/100 at the 0.70 threshold, TF32 disabled) with no aggregate bias---a well-powered null (exact McNemar $p=0.39$/$1.0$; Newcombe 95\% CIs within $\pm10$ points), a fragility axis distinct from the
 softmax-collapse instability of \citet{prieto2025edge} (Section~\ref{sec:knifeedge}).
 \item \textbf{A mechanistic read-out whose informative result is a negative one}: the dim-16 model
 does \emph{not} form the textbook Fourier embedding circle of \citet{nanda2023progress}. The
@@ -176,14 +174,18 @@ subnetwork \citep{merrill2023two}, matching the grokker/memorizer split our read
 \citet{prieto2025edge}, who show that without regularization grokking tasks drive the softmax into
 a floating-point failure they call Softmax Collapse, which \emph{prevents} grokking, and who fix
 it with a stabilized activation. Their effect systematically suppresses generalization. Ours is
-different in kind: a benign perturbation of the
-reduction order or execution device that does not detectably change the average grok-rate but flips
-individual seeds. Both point to grokking optimization operating near a numerical edge.
+different in kind: a perturbation of the
+reduction order or execution device that flips individual seeds without a detectable change in the
+average grok-rate. Both point to grokking optimization operating near a numerical edge.
 
 \textbf{Reproducibility and seed sensitivity.} That deep-learning results vary across seeds is
 widely known, and accounting for this variance is itself a studied problem
 \citep{bouthillier2021variance}; a single seed can be a lucky or unlucky outlier
-\citep{picard2021torch}, the precise hazard our multi-seed-rate protocol is built around. A related
+\citep{picard2021torch}, the precise hazard our multi-seed-rate protocol is built around. Most
+directly, \citet{summers2021nondeterminism} show that different sources of training
+nondeterminism---seed, cuDNN, reduction order---produce statistically indistinguishable variance
+with chaotic per-run sensitivity; we specialize this to grokking, where it surfaces as discrete
+grok/no-grok flips of individual seeds. A related
 caution is that a sharp ``emergent'' transition can be
 an artifact of a discontinuous metric rather than a property of the model
 \citep{schaeffer2023mirage}; we address this head-on by verifying that our grok-rate story is
@@ -217,8 +219,8 @@ from single binary operations ($(a{+}b)\bmod M$, $(a\cdot b)\bmod M$) to four-in
 ($(a\cdot b + c\cdot d)\bmod M$, $((a{+}b)\cdot(c{+}d))\bmod M$).
 
 \textbf{Training and evaluation.} Unless stated otherwise we use AdamW (learning rate
-$3\times10^{-3}$, batch size 16, weight decay 0.01), full-batch passes for up to 1{,}200--1{,}500
-epochs, on CPU in float32. We define a run as having \emph{grokked} if its best held-out accuracy
+$3\times10^{-3}$, minibatch size 16, weight decay 0.01) for up to 1{,}200--1{,}500 epochs (full
+passes over the training set), on CPU in float32. We define a run as having \emph{grokked} if its best held-out accuracy
 reaches a threshold $\tau=0.70$, far above the entropy chance level $1/M$ (for the composite tasks,
 whose answer marginals are mildly non-uniform, the majority-class baseline is somewhat higher than
 $1/M$ but still well below $\tau$). We write $n$ for the number of training examples and define the
@@ -444,7 +446,7 @@ variable is the CPU thread count. Changing the number of threads changes only th
 which floating-point reductions are summed; because floating-point addition is not associative
 \citep{goldberg1991floating}, this perturbs the result at the level of rounding while leaving the
 intended computation unchanged. We train $(a{+}b)\bmod 10$ at decay 0.01 with the thread count set
-to 1, 4, and 16, pairing by seed across 30 seeds.
+to 1, 4, and 16, pairing by seed across 300 seeds.
 
 Two facts stand out (Figure~\ref{fig:knifeedge}, left). First, thread counts 4 and 16 give
 bit-identical results on every seed: at this operator size the BLAS reduction tree saturates by
@@ -452,37 +454,36 @@ four threads, so 4 and 16 are the \emph{same} numerical environment. We verified
 training to completion at 4 and 16 threads on a shared seed and comparing the final weights: every
 parameter matches to the bit, maximum absolute difference exactly $0$. The clean perturbation is
 therefore 1 versus 4. Second, this perturbation, a pure change of reduction order, flips the grok
-outcome of \textbf{5 of 30 seeds (17\%)}. Seed 3 falls from 0.90 to 0.40 (loses grokking); seed 0
-rises from 0.55 to 0.95 (gains it); seeds 11, 21, and 24 move comparably. The mean absolute change
-in best accuracy is 0.14 and the maximum is 0.50. Yet the \emph{aggregate} grok-rate is
-statistically indistinguishable: 7/30 at one thread versus 8/30 at four, with five discordant seeds
-split 2 versus 3 (exact McNemar $p=1.0$). The perturbation shows \emph{no detectable bias}: it flips
-which seeds generalize, not how many. We claim no \emph{detectable} bias rather than exact
-unbiasedness, because the test is severely underpowered: with only five discordant pairs the
-smallest two-sided McNemar $p$ the design can attain is 0.0625, so it cannot reach $p<0.05$
-regardless of outcome, and a Newcombe paired-difference 95\% confidence interval on the rate still
-spans $[-18, +12]$ percentage points. A larger seed budget could resolve a bias of that size.
+outcome of \textbf{49 of 300 seeds (16\%)}: e.g.\ seed 57 falls from 0.80 to 0.00 (loses grokking)
+and seed 132 rises from 0.25 to 1.00 (gains it). The mean absolute change in best accuracy is 0.17
+and the maximum is 0.85. Yet the \emph{aggregate} grok-rate is nearly unchanged: 74/300 at one
+thread versus 81/300 at four, with the 49 discordant seeds split 21 versus 28. At this seed budget
+the test is well powered, and it finds \emph{no aggregate bias}: an exact two-sided McNemar test
+gives $p=0.39$, and a Newcombe paired-difference 95\% confidence interval on the rate spans only
+$[-6.9, +2.2]$ percentage points---ruling out any systematic shift larger than a few points. The
+perturbation flips \emph{which} seeds generalize, not \emph{how many}.
 
 To check that this is a property of grokking rather than of one particular numerical knob, we
 replicate it on a second, unrelated perturbation: CPU versus GPU (Figure~\ref{fig:knifeedge},
-right). Running $(a{+}b)\bmod 10$ at decay 0.1 paired by seed across 30 seeds, the two devices use
-entirely different kernels and accumulation orders, yet the grok-rate is nearly identical (27/30 on
-CPU, 26/30 on GPU) while 5 of 30 seeds flip (mean absolute change 0.11, again five discordant pairs
-split 3 versus 2, exact McNemar $p=1.0$, Newcombe paired-difference 95\% CI $[-13, +20]$ points).
+right). We disable TF32 so the comparison is a genuine change of accumulation order at full
+float32 precision, not a change of precision. Running $(a{+}b)\bmod 10$ at decay 0.1 paired by seed
+across 100 seeds, the two devices use entirely different kernels and accumulation orders, yet the
+grok-rate is nearly identical (86/100 on CPU, 85/100 on GPU) while 19 of 100 seeds flip (exact
+McNemar $p=1.0$, Newcombe paired-difference 95\% CI $[-7.8, +9.8]$ points).
 Two distinct perturbations of the floating-point environment, one (the device change) subsuming the
-other (reduction order), produce a comparable signature: at the $\tau=0.7$ convention both flip
-5 of 30 seeds with no detectable shift in the aggregate.
+other (reduction order), produce a comparable signature: both flip a sixth to a fifth of same-seed
+outcomes with no detectable shift in the aggregate.
 
 Two features argue against dismissing these flips as mere proximity to a 50\% decision boundary.
 First, every flip is a \emph{same-seed} event: paired runs share the data split, batch order, and
 (deterministically loaded) initial weights, so only the floating-point reduction changes -- the
 variance is numerical, not a reseed. Second, the two
 perturbations sit at very different operating points -- the thread comparison at decay 0.01 has an
-aggregate grok-rate near 25\%, the device comparison at decay 0.1 near 88\% -- yet both flip about
-17\% of seeds, so the flip rate is not an artifact of poising the aggregate exactly at 50\%. We do
-not, however, claim the two flip \emph{counts} are identical across thresholds: the thread count is
-stable at 5/30 for $\tau\in\{0.6,0.7,0.8\}$, whereas the device count ranges 2--6/30 over the same
-window (5/30 at the $\tau=0.7$ convention we report). What replicates is the qualitative signature --
+aggregate grok-rate near 25\%, the device comparison at decay 0.1 near 85\% -- yet both flip
+16--19\% of seeds, so the flip rate is not an artifact of poising the aggregate exactly at 50\%. We do
+not, however, claim the two flip \emph{counts} are identical across thresholds: the thread count runs
+45--62/300 for $\tau\in\{0.6,0.7,0.8\}$, whereas the device count ranges 8--23/100 over the same
+window (19/100 at the $\tau=0.7$ convention we report). What replicates is the qualitative signature --
 a minority of same-seed flips with no detectable aggregate bias -- not a precise rate.
 
 \begin{figure}[t]
@@ -490,19 +491,20 @@ a minority of same-seed flips with no detectable aggregate bias -- not a precise
 \includegraphics[width=0.64\linewidth]{figs/fig3_knifeedge.pdf}
 \end{center}
 \caption{Paired per-seed best accuracy under two numerical perturbations: reduction order (1 versus
-4 CPU threads, 30 seeds; left) and execution device (CPU versus GPU, 30 seeds; right). Each point
-is one seed; the only change between axes is the floating-point environment. Blue points keep their
-grok status; orange diamonds cross the 0.70 grok threshold (flip). Flips occur at 5/30 for both
-perturbations but straddle the diagonal symmetrically (exact McNemar $p=1.0$ each), so the aggregate
-grok-rate shows no detectable change.}
+4 CPU threads, 300 seeds; left) and execution device (CPU versus GPU, TF32 disabled, 100 seeds;
+right). Each point is one seed; the only change between axes is the floating-point environment. Blue
+points keep their grok status; orange diamonds cross the 0.70 grok threshold (flip). Flips occur at
+49/300 (thread) and 19/100 (device) but straddle the diagonal near-symmetrically (exact McNemar
+$p=0.39$ and $p=1.0$), so the aggregate grok-rate shows no detectable change.}
 \label{fig:knifeedge}
 \end{figure}
 
-The interpretation is that the generalizing solution is reachable but its basin is so shallow that
-sub-ULP differences in how a sum is accumulated determine, for a non-trivial fraction of seeds,
-whether optimization lands in it. This is benign on average and merely resamples the seed lottery,
-unlike the directional Softmax Collapse of \citet{prieto2025edge}; either way, the numerical
-environment is an uncontrolled variable that any single run silently fixes.
+One reading is that the generalizing solution is reachable but sits behind a boundary fine enough
+that sub-ULP differences in how a sum is accumulated decide, for a non-trivial fraction of seeds,
+whether optimization crosses it. Across our 300 (thread) and 100 (device) paired seeds this resamples \emph{which} seeds generalize
+without a detectable shift in \emph{how many}, unlike the directional Softmax Collapse of
+\citet{prieto2025edge}; either way, the numerical environment is an uncontrolled variable that any
+single run silently fixes.
 
 \subsection{Mechanism: generalization as periodicity}
 \label{sec:mechanism}
@@ -650,6 +652,8 @@ report the thread count and device; pair by seed when comparing conditions; and 
 single-run effect as a hypothesis to be killed by control. We suspect this is a hazard wherever a
 phase transition is measured near its threshold, not a quirk of our model.
 
+\textbf{Why this matters beyond a 12K model.} The specific knife-edge we characterize belongs to this small, tractable regime, and we do not claim the same sub-ULP sensitivity persists unchanged at scale. What transfers is the methodological hazard. Sharp, threshold-like transitions are increasingly invoked in claims about large models---grokking, emergent abilities, capability ``walls''---and such transitions are settings where an uncontrolled seed or numerical environment could, in principle, help decide a reported outcome. Our tractable setting lets us show, against a direct reading of the weights, that two innocuous-looking choices (how many threads a reduction uses; CPU versus GPU) flip a sixth of same-seed outcomes with no aggregate signal, and that three clean single-run narratives in our own data dissolve under paired, multi-seed control. The prescription that follows is scale-independent: report rates over many seeds, pin and report the numerical environment, pair by seed, and treat a dramatic single-run transition as a hypothesis to be refuted rather than a result. As the phenomena that most interest the field grow sharper and are increasingly read from expensive single runs, the cost of neglecting this rises. We offer the fully-legible regime less as a claim about 12K-parameter models than as a controlled testbed for a reproducibility discipline that studying phase transitions at any scale requires.
+
 \textbf{What fragility implies.} The reduction-order result constrains the loss landscape: the
 generalizing basin is reachable but shallow enough that sub-ULP accumulation differences decide
 entry for a sixth of seeds. This fits the Omnigrok picture of a slow drift to a distant, narrow
@@ -662,10 +666,10 @@ over runs, not a representative one.
 $M \leq 10$, chosen for single-token answers; the numerics we characterize are CPU-specific BLAS
 reductions and a single GPU. The grok threshold of 0.70 is a convention; because a discontinuous metric can manufacture an
 apparent transition \citep{schaeffer2023mirage}, we re-tabulated every grok-rate at thresholds
-0.60, 0.70, and 0.80. The inverted-U, the thread flip count (5/30 at all three thresholds), and the
+0.60, 0.70, and 0.80. The inverted-U, the thread flip count (45--62/300 across the three thresholds), and the
 decomposition gap are qualitatively unchanged (the weight-decay grok-rates read 20/27/90/0\% at
 threshold 0.70 and 20/17/70/0\% at 0.80); the device flip count is more threshold-sensitive
-(2--6/30), but its McNemar test is non-significant at every threshold, so no conclusion is
+(8--23/100), but its McNemar test is non-significant at every threshold, so no conclusion is
 load-bearing on the cutoff. The cardinality regularity should
 nonetheless be tested even more densely, at larger $M$, and in input bases other than the base-10
 digits used throughout, before it is read as more than an in-setting regularity. The mechanistic read-out establishes correlation between periodicity and generalization, not
@@ -703,7 +707,7 @@ repository,\footnote{\url{https://anonymous.4open.science/r/grokking-microscope/
 reported number -- including the paired statistics (exact
 McNemar, Newcombe, Fisher-$z$, Spearman) -- is reproducible from them. The numerical environment is
 recorded per run, as it is load-bearing: Python 3.12.9, PyTorch 2.12.1+cu126, Transformers 5.12.1,
-all sweeps on CPU in float32, with the device-control leg on a single NVIDIA RTX 3090 Ti.
+all sweeps on CPU in float32, with the device-control leg on a single NVIDIA RTX 3090 Ti (TF32 disabled---the device comparison is a pure change of accumulation order at full float32; the CPU BLAS backend is Intel MKL on an AMD Zen~2 CPU; the thread count is pinned and reported per experiment).
 
 \bibliography{main}
 \bibliographystyle{tmlr}

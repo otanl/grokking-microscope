@@ -38,3 +38,9 @@ pass*.txt
 pp.txt
 rw*.txt
 page_*.txt
+
+# De-anonymized preprint/journal builds (kept local, not part of this repo)
+paper/arxiv/
+paper/springer/
+paper/*.tar.gz
+paper/cover_letter_*.md
