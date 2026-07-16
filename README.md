@@ -2,16 +2,18 @@
 
 Reproducibility code and per-seed records for the paper
 
-> **What Governs Grokking in a Fully-Tractable Transformer? A Controlled Study at 12K Parameters**
+> **Grokking Is Conditional and Fragile: A Fully-Tractable, Multi-Seed Study at 12K Parameters**
+> ([arXiv:2607.05104](https://arxiv.org/abs/2607.05104))
 
 We treat an ~11,856-parameter transformer as a *microscope*: a model small enough to
 enumerate and read its weights, attention, and full input–output map directly, used to ask
 what actually governs grokking when nothing is hidden and every claim is a multi-seed **rate**
 rather than a single run.
 
-> ⚠️ **Anonymized for review.** This repository accompanies a submission under review at
-> TMLR. Author and institution identifiers, and the public Git/HF mirror link, are withheld
-> until camera-ready. Please do not de-anonymize.
+Related (different research question, same enumerable-world methodology):
+[otanl/microground](https://github.com/otanl/microground) asks how the *input pathway* shapes
+compositional binding; this repository asks what governs *grokking* and how fragile single-run
+grokking claims are.
 
 ---
 
@@ -84,7 +86,7 @@ huggingface_hub 1.20.1, numpy 2.4.6, matplotlib 3.11.0).
 ```
 scripts/        all experiment, aggregation, figure, and statistics code (run order in REPRODUCE.md)
 results/        per-seed JSON records + aggregated .txt tables — the released evidence
-paper/          anonymized LaTeX source (main.tex, main.bib) + compiled PDF + figures
+paper/          LaTeX source (main.tex, main.bib) + compiled PDF + figures
 figures/        generated figures (PDF/PNG), copied into paper/figs/
 requirements.txt, LICENSE, REPRODUCE.md
 ```
@@ -116,6 +118,17 @@ exactly without retraining.
 - **This repository's code** (`scripts/`, analysis, figures): MIT — see [LICENSE](LICENSE).
 - **The model** (Glimmer-1-Base) is the property of its authors (CompactAI / Glint Research)
   and is distributed by them under MIT on HuggingFace. It is **not** redistributed here.
+
+## Citing this work
+
+```bibtex
+@article{ootani2026grokking,
+  author  = {Ootani, Yoshiyuki},
+  title   = {Grokking Is Conditional and Fragile: A Fully-Tractable, Multi-Seed Study at 12K Parameters},
+  journal = {arXiv preprint arXiv:2607.05104},
+  year    = {2026}
+}
+```
 
 ## Crediting the model (third-party)
 
